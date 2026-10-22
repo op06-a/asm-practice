@@ -1,0 +1,1028 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Тренажёр процессора</title>
+<style>
+:root{
+  --bg:#ffffff; --fg:#1b1b1b; --muted:#666666; --line:#d0d0d0; --soft:#f3f3f3;
+  --accent:#2457c5; --accent-fg:#ffffff; --ok:#1d7a3e; --bad:#b42318; --hl:#fff3bf;
+  --mono:Consolas,"Courier New",ui-monospace,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#181818; --fg:#e6e6e6; --muted:#9a9a9a; --line:#3a3a3a; --soft:#232323;
+  --accent:#7aa2ff; --accent-fg:#111111; --ok:#5cc282; --bad:#f07167; --hl:#3d3614; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#181818; --fg:#e6e6e6; --muted:#9a9a9a; --line:#3a3a3a; --soft:#232323;
+  --accent:#7aa2ff; --accent-fg:#111111; --ok:#5cc282; --bad:#f07167; --hl:#3d3614; color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{color-scheme:light}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:Arial,"Segoe UI",system-ui,sans-serif;font-size:15px;line-height:1.5}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+h1,h2,h3{margin:0;font-weight:bold;line-height:1.25}
+h1{font-size:24px} h2{font-size:19px} h3{font-size:15px}
+p{margin:0}
+code,.mono{font-family:var(--mono)}
+button{font:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.wrap{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.btn{border:1px solid var(--line);background:var(--soft);color:var(--fg);border-radius:3px;padding:6px 12px;white-space:nowrap}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+.btn.ghost{background:transparent}
+.small{font-size:13px;color:var(--muted)}
+.ok{color:var(--ok)} .bad{color:var(--bad)}
+
+#top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);border-bottom:1px solid var(--line)}
+#top .in{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;padding-block:8px;max-width:1440px;margin:0 auto}
+.brand{font-weight:bold}
+nav{display:flex;gap:4px}
+nav button{background:none;border:1px solid transparent;padding:4px 10px;border-radius:3px;color:var(--fg)}
+nav button.on{border-color:var(--line);background:var(--soft)}
+.who{margin-left:auto;display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-size:14px}
+.who .name{color:var(--muted)}
+
+main{max-width:1440px;margin:0 auto;padding-block:20px 40px}
+section[hidden]{display:none!important}
+
+.login{max-width:440px;margin:40px auto;display:grid;gap:14px}
+.form{display:grid;gap:12px}
+.form label{display:grid;gap:4px;font-size:14px}
+.form input{font:inherit;padding:7px 9px;border:1px solid var(--line);border-radius:3px;background:var(--bg);color:var(--fg)}
+
+.box{border:1px solid var(--line);padding:12px}
+.box h3{margin-bottom:8px}
+.regs{display:grid}
+.reg{display:grid;grid-template-columns:36px 1fr auto;gap:10px;align-items:baseline;padding:3px 4px;font-family:var(--mono);font-size:15px}
+.reg.chg{background:var(--hl)}
+.reg .bits{color:var(--muted);letter-spacing:1px}
+.reg .rv{text-align:right;min-width:40px;font-variant-numeric:tabular-nums}
+.reg .rn{font-weight:bold}
+.flags{display:flex;gap:16px;margin-top:8px;font-family:var(--mono);font-size:15px}
+.flags span{padding:2px 4px}
+.flags span.chg{background:var(--hl)}
+
+.article{max-width:760px;margin:0 auto;display:grid;gap:24px}
+.article section{display:grid;gap:10px}
+.article p{max-width:70ch}
+ul.rules{margin:0;padding-left:20px;display:grid;gap:4px}
+.tbl{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{text-align:left;padding:6px 10px;border:1px solid var(--line);vertical-align:top}
+th{background:var(--soft);font-weight:bold}
+td code{white-space:nowrap}
+
+.list-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:14px}
+.tasklist td:first-child{width:36px} .tasklist td:last-child{width:110px}
+.tasklist a{color:var(--accent);cursor:pointer;text-decoration:underline}
+
+.work{display:grid;grid-template-columns:minmax(0,320px) minmax(0,1fr) minmax(0,330px);gap:16px;align-items:start}
+@media (max-width:1150px){.work{grid-template-columns:minmax(0,1fr) minmax(0,330px)}.work .task{grid-column:1/-1}}
+@media (max-width:740px){.work{grid-template-columns:1fr}}
+.task{display:grid;gap:10px}
+.inputs{font-family:var(--mono);font-size:14px;background:var(--soft);padding:6px 8px}
+.hintbox{background:var(--soft);padding:8px 10px;font-size:14px;white-space:pre-wrap}
+.results{display:grid;gap:4px;font-size:14px}
+.links{display:flex;gap:8px;flex-wrap:wrap}
+.mid{display:grid;gap:10px;min-width:0}
+.toolbar{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.toolbar .sp{flex:1}
+#status{font-size:13px;color:var(--muted)}
+.editor{display:grid;grid-template-columns:auto minmax(0,1fr);border:1px solid var(--line);height:320px;overflow:hidden}
+.gutter{margin:0;padding:8px 0;overflow:hidden;font-family:var(--mono);font-size:14px;line-height:21px;color:var(--muted);text-align:right;user-select:none;background:var(--soft);border-right:1px solid var(--line);min-width:40px}
+.gutter span{display:block;padding:0 6px}
+.gutter span.cur{background:var(--hl);color:var(--fg);font-weight:bold}
+.gutter span.err{color:var(--bad);font-weight:bold}
+textarea#code{border:0;resize:none;padding:8px;font-family:var(--mono);font-size:14px;line-height:21px;background:var(--bg);color:var(--fg);white-space:pre;overflow:auto;tab-size:4;height:100%;width:100%}
+textarea#code:focus-visible{outline:none}
+.loghead{display:flex;justify-content:space-between;align-items:center}
+#log{border:1px solid var(--line);max-height:300px;min-height:110px;overflow-y:auto;padding:8px 10px;display:grid;gap:8px;align-content:start;font-size:14px}
+.entry{display:grid;gap:2px;padding-bottom:8px;border-bottom:1px solid var(--line)}
+.entry:last-child{border-bottom:0;padding-bottom:0}
+.entry .h{font-family:var(--mono);font-weight:bold}
+.entry .bx{font-family:var(--mono);font-size:12px;color:var(--muted)}
+.entry.sys{color:var(--muted)}
+.entry.err{color:var(--bad)}
+.entry.last .h{background:var(--hl)}
+.side{display:grid;gap:12px;min-width:0}
+.task,.box{min-width:0}
+.screen{font-family:var(--mono);font-size:16px;border:1px solid var(--line);padding:6px 8px;min-height:34px;white-space:pre;overflow-x:auto}
+.memwrap{overflow-x:auto}
+.mem{display:grid;grid-template-columns:repeat(16,minmax(20px,1fr));font-family:var(--mono);font-size:10px;min-width:380px;font-variant-numeric:tabular-nums;border-left:1px solid var(--line);border-top:1px solid var(--line)}
+.mem span{text-align:center;padding:1px 0;border-right:1px solid var(--line);border-bottom:1px solid var(--line);color:var(--muted)}
+.mem span.code{color:var(--fg)}
+.mem span.ipc{background:var(--hl);color:var(--fg);font-weight:bold}
+.mem span.chg{color:var(--fg);font-weight:bold;text-decoration:underline}
+.box .ph{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.box .ph h3{margin:0}
+.base{font-size:13px}
+.base button{background:none;border:0;padding:0 4px;color:var(--accent);text-decoration:underline}
+.base button.on{color:var(--fg);text-decoration:none;font-weight:bold}
+
+.result{max-width:760px;margin:0 auto;display:grid;gap:16px}
+.grade{font-size:40px;font-weight:bold}
+.confirm{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+#modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:grid;place-items:center;z-index:20;padding:16px}
+#modal .mbox{background:var(--bg);padding:20px;max-width:440px;width:100%;display:grid;gap:12px;border:1px solid var(--line)}
+</style>
+</head>
+<body>
+
+
+<header id="top" hidden>
+  <div class="in wrap">
+    <span class="brand">Тренажёр процессора</span>
+    <nav id="nav">
+      <button data-go="theory">Теория</button>
+      <button data-go="tasks">Задания</button>
+      <button data-go="result" id="navResult" hidden>Основная оценка</button>
+    </nav>
+    <div class="who">
+      <span class="name" id="who"></span>
+      <span id="score"></span>
+      <button class="btn primary" id="submitBtn">Сдать работу</button>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <section id="scr-login">
+    <div class="login">
+      <h1>Практическая работа «Система команд процессора»</h1>
+      <p>Вы будете писать программы для простого 8-битного процессора и выполнять их по одной команде. Всего 8 заданий, максимум 12 баллов. Решения проверяются автоматически, оценка появится после сдачи работы.</p>
+      <form class="form" id="loginForm" novalidate>
+        <label for="fio">Фамилия и имя<input id="fio" autocomplete="name"></label>
+        <label for="grp">Группа<input id="grp"></label>
+        <p class="bad small" id="loginErr" hidden>Введите фамилию, имя и группу.</p>
+        <div><button class="btn primary" type="submit">Начать</button></div>
+      </form>
+    </div>
+  </section>
+
+  <section id="scr-theory" hidden>
+    <div class="article">
+      <h1>Теория</h1>
+
+      <section>
+        <h2>Система команд процессора</h2>
+        <p><b>Система команд</b> процессора – это полный набор машинных команд, которые умеет выполнять процессор, и правила их записи. Любая программа в итоге превращается в последовательность таких команд.</p>
+        <p>Команда состоит из двух частей:</p>
+        <ul class="rules">
+          <li><b>код операции</b> показывает, что нужно сделать (сложить, переслать, перейти);</li>
+          <li><b>операнды</b> показывают, с чем это сделать: регистр, ячейка памяти или число.</li>
+        </ul>
+        <p>Например, команда <code>MOV A, 5</code> занимает в памяти 3 байта:</p>
+        <div class="tbl"><table>
+          <tr><th>Байт 1</th><th>Байт 2</th><th>Байт 3</th></tr>
+          <tr><td>код операции MOV</td><td>регистр A (куда записать)</td><td>число 5 (что записать)</td></tr>
+        </table></div>
+        <p>Команды записываются словами (<code>MOV</code>, <code>ADD</code>). Такой язык называется языком ассемблера. Программа-ассемблер переводит эти слова в числа, то есть в машинный код.</p>
+        <p>Группы команд:</p>
+        <div class="tbl"><table>
+          <tr><th>Группа</th><th>Команды</th><th>Назначение</th></tr>
+          <tr><td>Пересылка данных</td><td><code>MOV</code>, <code>PUSH</code>, <code>POP</code></td><td>копирование данных между регистрами и памятью</td></tr>
+          <tr><td>Арифметические</td><td><code>ADD</code>, <code>SUB</code>, <code>MUL</code>, <code>DIV</code>, <code>INC</code>, <code>DEC</code></td><td>вычисления</td></tr>
+          <tr><td>Логические</td><td><code>AND</code>, <code>OR</code>, <code>XOR</code>, <code>NOT</code>, <code>SHL</code>, <code>SHR</code></td><td>операции с отдельными битами</td></tr>
+          <tr><td>Сравнение и переходы</td><td><code>CMP</code>, <code>JMP</code>, <code>JZ</code>, <code>JNZ</code>, <code>JC</code></td><td>изменение порядка выполнения команд</td></tr>
+          <tr><td>Управление</td><td><code>HLT</code></td><td>остановка процессора</td></tr>
+        </table></div>
+      </section>
+
+      <section>
+        <h2>Регистры процессора</h2>
+        <p><b>Регистр</b> – это ячейка памяти внутри процессора. Обращение к регистру происходит намного быстрее, чем к оперативной памяти, поэтому вычисления выполняются в регистрах.</p>
+        <div class="tbl"><table>
+          <tr><th>Вид регистра</th><th>Назначение</th><th>В тренажёре</th></tr>
+          <tr><td>Общего назначения</td><td>хранят числа и промежуточные результаты</td><td><code>A</code>, <code>B</code>, <code>C</code>, <code>D</code></td></tr>
+          <tr><td>Счётчик команд</td><td>хранит адрес следующей команды</td><td><code>IP</code></td></tr>
+          <tr><td>Указатель стека</td><td>хранит адрес вершины стека</td><td><code>SP</code></td></tr>
+          <tr><td>Регистр флагов</td><td>хранит признаки результата последней операции</td><td>флаги <code>Z</code> и <code>C</code></td></tr>
+        </table></div>
+        <p><b>Флаг Z</b> (нуль) равен 1, если результат операции равен нулю. <b>Флаг C</b> (перенос) равен 1, если результат не поместился в регистр, то есть больше 255 или меньше 0.</p>
+        <p>Процессор тренажёра 8-битный: каждый регистр хранит число от 0 до 255. Память состоит из 256 ячеек. Программа записывается в память начиная с адреса 0. Ячейки 232–255 связаны с экраном.</p>
+      </section>
+
+      <section>
+        <h2>Команды тренажёра</h2>
+        <div class="tbl"><table>
+          <tr><th>Команда</th><th>Действие</th><th>Пример</th></tr>
+          <tr><td><code>MOV</code></td><td>записать значение в регистр или ячейку памяти</td><td><code>MOV A, 5</code><br><code>MOV C, A</code><br><code>MOV [232], 'H'</code></td></tr>
+          <tr><td><code>ADD</code>, <code>SUB</code></td><td>сложение, вычитание</td><td><code>ADD A, B</code><br><code>SUB A, 1</code></td></tr>
+          <tr><td><code>INC</code>, <code>DEC</code></td><td>увеличить, уменьшить на 1</td><td><code>INC A</code><br><code>DEC B</code></td></tr>
+          <tr><td><code>MUL</code>, <code>DIV</code></td><td>умножение, деление регистра A</td><td><code>MUL 3</code> (A = A × 3)<br><code>MUL B</code> (A = A × B)</td></tr>
+          <tr><td><code>CMP</code></td><td>сравнение двух чисел, меняет только флаги: Z = 1, если числа равны; C = 1, если первое меньше</td><td><code>CMP A, B</code></td></tr>
+          <tr><td><code>JMP</code></td><td>переход к метке</td><td><code>JMP start</code></td></tr>
+          <tr><td><code>JZ</code>, <code>JNZ</code></td><td>переход, если Z = 1; если Z = 0</td><td><code>JNZ loop</code></td></tr>
+          <tr><td><code>JC</code>, <code>JNC</code></td><td>переход, если C = 1; если C = 0</td><td><code>JC m1</code></td></tr>
+          <tr><td><code>HLT</code></td><td>остановка процессора</td><td><code>HLT</code></td></tr>
+        </table></div>
+        <h3>Правила записи</h3>
+        <ul class="rules">
+          <li>Одна команда в строке. Первым пишется регистр, в который записывается результат: <code>ADD A, B</code> означает A = A + B.</li>
+          <li>Числа от 0 до 255. Символ в апострофах заменяется своим кодом: <code>'A'</code> = 65.</li>
+          <li>Квадратные скобки обозначают ячейку памяти: <code>[232]</code> – ячейка с адресом 232.</li>
+          <li>Метка ставится перед командой и заканчивается двоеточием: <code>loop: DEC B</code>.</li>
+          <li>Текст после точки с запятой считается комментарием.</li>
+          <li>Программа заканчивается командой <code>HLT</code>.</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>Порядок работы</h2>
+        <ul class="rules">
+          <li>Кнопка «Шаг» выполняет одну команду. Изменившиеся регистры выделяются, под кодом выводится пояснение.</li>
+          <li>Кнопка «Запустить» выполняет программу до команды HLT.</li>
+          <li>Кнопка «Проверить» проверяет решение на нескольких тестах.</li>
+          <li>Если проверка не пройдена, под заданием появится пояснение: что получилось не так и на что обратить внимание. После нескольких неудачных проверок откроются подсказки.</li>
+          <li>Оценка: 10–12 баллов – «5», 7–9 – «4», 4–6 – «3», 0–3 – «2».</li>
+          <li>После сдачи основной работы откроются 4 дополнительных задания на отдельную оценку: 4 решено – «5», 3 – «4», 2 – «3». Основная оценка от них не меняется.</li>
+        </ul>
+        <div><button class="btn primary" data-go="tasks">Перейти к заданиям</button></div>
+      </section>
+    </div>
+  </section>
+
+  <section id="scr-tasks" hidden>
+    <div class="list-head"><h1 id="tasksTitle">Задания</h1><p class="small" id="listSummary"></p></div>
+    <div class="tbl"><table class="tasklist" id="cards"></table></div>
+  </section>
+
+  <section id="scr-work" hidden>
+    <div class="work">
+      <div class="task box" id="taskPane"></div>
+      <div class="mid">
+        <div class="toolbar">
+          <button class="btn" id="bStep">Шаг</button>
+          <button class="btn" id="bRun">Запустить</button>
+          <button class="btn" id="bReset">Сброс</button>
+          <span id="status"></span>
+          <span class="sp"></span>
+          <button class="btn primary" id="bCheck">Проверить</button>
+        </div>
+        <div class="editor">
+          <pre class="gutter" id="gutter"></pre>
+          <textarea id="code" spellcheck="false" autocapitalize="off" autocomplete="off" wrap="off" aria-label="Код программы"></textarea>
+        </div>
+        <div class="loghead"><h3>Пояснения</h3><button class="btn ghost" id="bClear">Очистить</button></div>
+        <div id="log"></div>
+      </div>
+      <div class="side">
+        <div class="box">
+          <div class="ph"><h3>Регистры</h3><span class="base" id="base">Система счисления: <button data-b="10" class="on">10</button><button data-b="16">16</button></span></div>
+          <div class="regs" id="regs"></div>
+          <div class="flags" id="flags"></div>
+        </div>
+        <div class="box">
+          <h3>Экран (ячейки 232–255)</h3>
+          <div class="screen" id="screen"></div>
+        </div>
+        <div class="box">
+          <h3>Память</h3>
+          <div class="memwrap"><div class="mem" id="mem"></div></div>
+          <p class="small" style="margin-top:6px">Выделена текущая команда. Подчёркнуты ячейки, изменённые последней командой.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="scr-result" hidden>
+    <div class="result" id="resultBox"></div>
+  </section>
+</main>
+
+<div id="modal" hidden><div class="mbox" id="modalBox"></div></div>
+
+<script>
+/* ===================== data ===================== */
+const TASKS = [
+  {id:1, pts:1, title:'Первая программа',
+   short:'Записать числа в регистры и сложить их.',
+   goal:['Запишите число 5 в регистр A, число 3 в регистр B и сложите их.','Результат должен оказаться в регистре A.'],
+   example:"MOV D, 7    ; записать число 7 в регистр D\nMOV C, 2    ; записать число 2 в регистр C\nADD D, C    ; D = D + C, в D будет 9\nHLT         ; остановить процессор",
+   crit:'В конце A = 8 и B = 3. Нужны команды MOV и ADD.',
+   hints:['Сначала двумя командами запишите числа в регистры A и B, затем сложите регистры. Сравните с примером в условии.',
+          'Программа состоит из четырёх команд: две команды MOV, одна команда ADD и HLT. В команде ADD первым указывается регистр, в котором должен оказаться результат.'],
+   must:['MOV','ADD'], tests:[{setup:{}, expect:{reg:{A:8,B:3}}}],
+   diag:(c)=>{const A=c.r[0],B=c.r[1];
+     if(A===0&&B===0) return 'Регистры A и B остались пустыми. Начните с того, чтобы записать в них числа. Какая команда из примера записывает число в регистр?';
+     if(A===5&&B===3) return 'Числа записаны в регистры верно, но не сложены. Какая команда выполняет сложение?';
+     if(B===8) return 'Сумма оказалась в регистре B, а должна быть в A. Вспомните: результат записывается в регистр, который указан первым.';
+     if(A!==5&&A!==8||B!==3) return `Перед сложением в A должно быть 5, а в B должно быть 3. Сейчас A = ${A}, B = ${B}. Выполните программу кнопкой «Шаг» и проверьте, что записывает каждая команда.`;
+     return null}},
+  {id:2, pts:1, title:'Сумма и разность',
+   short:'Найти сумму и разность чисел из A и B.',
+   goal:['В регистры A и B заранее записаны два числа, A не меньше B.','Запишите в регистр C их сумму A + B, а в регистр D их разность A − B.','При проверке числа каждый раз другие, поэтому не записывайте в A и B свои значения.'],
+   example:"MOV D, B    ; скопировать значение регистра B в регистр D\nSUB D, A    ; D = D − A\nHLT",
+   crit:'C = A + B и D = A − B на четырёх наборах чисел. Нужны команды ADD и SUB.',
+   hints:['Сначала скопируйте A в C и прибавьте к C значение B. Затем скопируйте A в D и вычтите из D значение B.',
+          'Понадобятся две команды MOV (в C и в D), команды ADD и SUB и HLT. Сами регистры A и B при этом менять не нужно.'],
+   must:['ADD','SUB'], tests:[{setup:{A:9,B:4},expect:{reg:{C:13,D:5}}},{setup:{A:30,B:10},expect:{reg:{C:40,D:20}}},{setup:{A:100,B:55},expect:{reg:{C:155,D:45}}},{setup:{A:7,B:7},expect:{reg:{C:14,D:0}}}],
+   diag:(c,tc)=>{const {A,B}=tc.setup, C=c.r[2], D=c.r[3];
+     if(C===0&&D===0) return 'Регистры C и D остались пустыми. Как записать в C значение, которое лежит в регистре A?';
+     if(C!==A+B&&(C===A||C===B)) return 'В C попало только одно из чисел. Какой командой прибавить к C второе число?';
+     if(C!==A+B) return `При A = ${A}, B = ${B} в C получилось ${C}, а сумма равна ${A+B}. Проверьте, не изменились ли A и B до того, как вы начали считать сумму.`;
+     if(D===(256+B-A)%256&&A!==B) return 'Разность получилась с обратным знаком: из B вычитается A. Из какого регистра и какое число нужно вычитать?';
+     if(D!==A-B) return `Сумма найдена верно. При A = ${A}, B = ${B} в D получилось ${D}, а должно быть ${A-B}. Проверьте, какое значение было в D перед вычитанием и не изменился ли A после подсчёта суммы.`;
+     return null}},
+  {id:3, pts:1, title:'Переполнение',
+   short:'Получить результат, который не помещается в 8 бит.',
+   goal:['Регистр хранит 8 бит, то есть числа от 0 до 255.','Напишите программу, в которой команда ADD даёт результат больше 255. Тогда процессор выставит флаг переноса C = 1.','После выполнения посмотрите, какое число оказалось в регистре, и объясните его.'],
+   crit:'В конце флаг C = 1, в программе есть команда ADD.',
+   hints:['Сумма двух чисел должна быть больше 255. Каждое из чисел при этом должно быть не больше 255.',
+          'Например, запишите в A число 200, в B число 100 и сложите их.'],
+   must:['ADD'], tests:[{setup:{}, expect:{flags:{C:1}}}],
+   diag:(c)=> c.c===0 ? 'Флаг C равен 0, значит сумма поместилась в регистр. Какое наибольшее число помещается в 8 бит? Подберите слагаемые так, чтобы сумма была больше этого числа.' : null},
+  {id:4, pts:1, title:'Вычисление выражения',
+   short:'Посчитать ((12 + 8) × 3 − 15) ÷ 5.',
+   goal:['Вычислите значение выражения ((12 + 8) × 3 − 15) ÷ 5.','Результат должен оказаться в регистре A.'],
+   example:"MOV A, 4\nMUL 5       ; A = A × 5, в A будет 20\nDIV 2       ; A = A ÷ 2, в A будет 10\nHLT",
+   crit:'A = 9, в программе есть команды ADD, MUL, SUB и DIV.',
+   hints:['Считайте по действиям, как на бумаге, и держите промежуточный результат в регистре A: сложение, умножение, вычитание, деление.',
+          'Промежуточные значения A: 20, затем 60, затем 45, затем 9. Команды MUL и DIV работают только с регистром A.'],
+   must:['ADD','MUL','SUB','DIV'], tests:[{setup:{}, expect:{reg:{A:9}}}],
+   diag:(c)=>{const A=c.r[0];
+     if(A===20) return 'Сумма в скобках вычислена верно. Какое действие следующее и какая команда его выполняет?';
+     if(A===60) return 'Умножение выполнено верно. Осталось вычесть 15 и разделить результат на 5.';
+     if(A===45) return 'Осталось разделить результат на 5. Какая команда выполняет деление и какой регистр она делит?';
+     if(A===36||A===44) return 'Проверьте порядок действий: сначала выполняется сложение в скобках, потом умножение.';
+     if(c.r.slice(1).some(v=>[20,60,45,9].includes(v))) return 'Команды MUL и DIV всегда работают с регистром A. Промежуточный результат должен находиться в A.';
+     if(A===0) return 'Регистр A равен 0. С какого числа нужно начать вычисление?';
+     return null}},
+  {id:5, pts:2, title:'Наибольшее из трёх',
+   short:'Найти наибольшее из чисел в A, B и C.',
+   goal:['В регистры A, B и C заранее записаны три числа. Запишите в регистр D наибольшее из них.','Если наибольших чисел несколько, запишите любое.'],
+   example:"CMP D, 10   ; сравнить D и 10: если D меньше 10, флаг C = 1\nJC m1       ; если C = 1, перейти к метке m1\nMOV D, 0    ; эта команда выполнится, только если D не меньше 10\nm1: HLT",
+   crit:'D = наибольшее из A, B, C на шести наборах чисел. Нужны команда CMP и условный переход.',
+   hints:['Запишите в D значение A. Сравните D с B: если B больше, запишите B в D. Затем так же сравните D с C.',
+          'После CMP D, B флаг C = 1, если D меньше B. Команда JNC пропускает замену, если D не меньше B. Для регистра C повторите то же самое с другой меткой.'],
+   must:['CMP'], cond:true,
+   tests:[{setup:{A:5,B:9,C:3},expect:{reg:{D:9}}},{setup:{A:14,B:3,C:20},expect:{reg:{D:20}}},{setup:{A:200,B:0,C:50},expect:{reg:{D:200}}},{setup:{A:7,B:7,C:7},expect:{reg:{D:7}}},{setup:{A:1,B:2,C:3},expect:{reg:{D:3}}},{setup:{A:3,B:2,C:1},expect:{reg:{D:3}}}],
+   diag:(c,tc)=>{const {A,B,C}=tc.setup, D=c.r[3], mx=Math.max(A,B,C);
+     if(D===0&&mx>0) return 'Регистр D остался пустым. Какое значение можно сразу записать в D, а потом при необходимости заменить?';
+     return `При A = ${A}, B = ${B}, C = ${C} в D оказалось ${D}, а наибольшее число ${mx}. Наберите эти числа в регистры в начале программы, выполните её по шагам и посмотрите после каждой команды CMP, какой стал флаг C и выполнился ли переход. Не забудьте потом убрать эти строки.`}},
+  {id:6, pts:2, title:'Факториал',
+   short:'Вычислить B! с помощью цикла.',
+   goal:['В регистр B заранее записано число от 1 до 5. Вычислите его факториал и запишите результат в регистр A.','Факториал: B! = 1 × 2 × … × B. Например, 4! = 24.','Используйте цикл.'],
+   example:"MOV D, 3\nrep: DEC D  ; уменьшить D на 1\nJNZ rep     ; если D не равно 0, вернуться к метке rep\nHLT         ; команды DEC и JNZ выполнятся 3 раза",
+   crit:'A = B! для B = 1, 3, 4, 5. В программе есть цикл (переход назад).',
+   hints:['Перед циклом запишите в A единицу. В цикле умножайте A на B и уменьшайте B на 1, пока B не станет равным 0.',
+          'Цикл состоит из метки, команды MUL B, команды DEC B и перехода JNZ к метке. После цикла поставьте HLT.'],
+   must:['MUL'], loop:true,
+   tests:[{setup:{B:3},expect:{reg:{A:6}}},{setup:{B:1},expect:{reg:{A:1}}},{setup:{B:4},expect:{reg:{A:24}}},{setup:{B:5},expect:{reg:{A:120}}}],
+   diag:(c,tc)=>{const A=c.r[0];
+     if(A===0) return 'Регистр A равен 0, а при умножении на 0 всегда получается 0. Каким должно быть значение A перед циклом?';
+     return `При B = ${tc.setup.B} получено A = ${A}, а нужно ${tc.expect.reg.A}. Выполните программу по шагам и посчитайте, сколько раз выполняется умножение и на какие числа умножается A.`}},
+  {id:7, pts:2, title:'Сумма от 1 до N',
+   short:'Сложить числа от 1 до N, не изменяя B.',
+   goal:['В регистр B заранее записано число N от 1 до 10.','Вычислите сумму 1 + 2 + … + N и запишите её в регистр A. Используйте цикл.','После выполнения программы в регистре B должно остаться исходное число N.'],
+   example:"MOV D, 3\nrep: DEC D  ; уменьшить D на 1\nJNZ rep     ; если D не равно 0, вернуться к метке rep\nHLT         ; команды DEC и JNZ выполнятся 3 раза",
+   crit:'A = 1 + 2 + … + N и B = N для N = 1, 3, 5, 10. В программе есть цикл.',
+   hints:['Скопируйте N из B в другой регистр, например в D, и используйте D как счётчик цикла. Тогда B не изменится.',
+          'Перед циклом запишите в A ноль и скопируйте B в D. В цикле прибавляйте D к A и уменьшайте D на 1, пока D не станет равным 0.'],
+   must:['ADD'], loop:true,
+   tests:[{setup:{B:5},expect:{reg:{A:15,B:5}}},{setup:{B:1},expect:{reg:{A:1,B:1}}},{setup:{B:3},expect:{reg:{A:6,B:3}}},{setup:{B:10},expect:{reg:{A:55,B:10}}}],
+   diag:(c,tc)=>{const A=c.r[0], N=tc.setup.B;
+     if(A===tc.expect.reg.A && c.r[1]!==N) return 'Сумма вычислена верно, но значение B изменилось, а по условию оно должно остаться прежним. В каком другом регистре можно вести счётчик цикла?';
+     if(A===0) return 'Регистр A остался равным 0. Какая команда в цикле должна изменять A?';
+     return `При N = ${N} получено A = ${A}, а нужно ${tc.expect.reg.A}. Выполните программу по шагам и проверьте, какие числа прибавляются к A и сколько раз выполняется цикл.`}},
+  {id:8, pts:2, title:'Вывод числа на экран',
+   short:'Вывести слово CPU и двузначное число из A.',
+   goal:['Ячейки памяти 232–255 связаны с экраном: число в ячейке показывается как символ с этим кодом. Например, числу 67 соответствует буква C, числу 48 соответствует цифра 0.','В регистре A заранее записано двузначное число (от 10 до 99). Выведите на экран слово CPU, пробел и это число.','Если A = 42, на экране должно быть «CPU 42».'],
+   example:"MOV [232], 'O'   ; вывести букву O в первую позицию экрана\nMOV A, 47\nDIV 10           ; A = 47 ÷ 10 = 4, остаток отбрасывается\nHLT",
+   crit:'На экране «CPU» и число из A для A = 42, 70, 99, 10.',
+   hints:['Цифра десятков равна A ÷ 10. Цифра единиц равна A − десятки × 10. Команды DIV и MUL меняют A, поэтому заранее сохраните исходное число в другом регистре.',
+          'План: скопировать A в B; разделить A на 10 (десятки) и скопировать результат в C; умножить A на 10 и вычесть его из B (в B останутся единицы). Затем прибавить 48 к C и к B и записать их в ячейки 236 и 237.'],
+   must:['DIV'], tests:[{setup:{A:42},expect:{out:'CPU 42'}},{setup:{A:70},expect:{out:'CPU 70'}},{setup:{A:99},expect:{out:'CPU 99'}},{setup:{A:10},expect:{out:'CPU 10'}}],
+   diag:(c,tc)=>{const out=outStr(c), A=tc.setup.A, t=Math.floor(A/10), u=A%10, d1=c.mem[236], d2=c.mem[237];
+     if(!out.startsWith('CPU')) return 'Слово CPU не выводится в начале экрана. В какие ячейки памяти нужно записать буквы, чтобы они оказались в первых позициях?';
+     if(d1===t||d2===u) return 'В ячейку экрана записано само значение цифры, а экран показывает символ с этим кодом. Чему равен код символа «0» и как из цифры получить её код?';
+     if(d1===0) return 'Цифра десятков не появилась на экране. После слова CPU идёт пробел, поэтому десятки должны стоять в ячейке 236, а единицы в ячейке 237.';
+     if(d1===48+t&&d2!==48+u) return `Цифра десятков выведена верно. При A = ${A} единицы должны быть ${u}. Как получить цифру единиц, зная само число и цифру десятков?`;
+     if(d1!==48+t) return `При A = ${A} цифра десятков должна быть ${t}. Какой командой найти, сколько десятков в числе?`;
+     return null}},
+];
+const BONUS = [
+  {id:9, pts:1, title:'Чётное или нечётное',
+   short:'Определить, чётное ли число в A.',
+   goal:['В регистре A заранее записано число от 0 до 255.','Запишите в регистр C число 0, если A чётное, и 1, если A нечётное.'],
+   example:"MOV D, 13      ; 13 = 00001101\nAND D, 12      ; 12 = 00001100, в D будет 00001100 = 12\nHLT            ; AND оставляет только те биты, которые равны 1 в обоих числах",
+   crit:'C = 0 для чётных и C = 1 для нечётных чисел на пяти наборах.',
+   hints:['Посмотрите на двоичную запись чисел. Чем отличается последний бит у чётных и нечётных чисел?',
+          'Последний бит нечётного числа равен 1. Скопируйте A в C и оставьте в C только последний бит командой AND.'],
+   must:[], tests:[{setup:{A:4},expect:{reg:{C:0}}},{setup:{A:7},expect:{reg:{C:1}}},{setup:{A:0},expect:{reg:{C:0}}},{setup:{A:255},expect:{reg:{C:1}}},{setup:{A:100},expect:{reg:{C:0}}}]},
+  {id:10, pts:1, title:'Умножение без MUL',
+   short:'Умножить A на B сложением.',
+   goal:['В регистры A и B заранее записаны числа от 0 до 15.','Запишите в регистр C их произведение A × B. Команду MUL использовать нельзя.','Учтите, что одно из чисел может быть равно 0.'],
+   crit:'C = A × B на пяти наборах чисел, включая нули. Команда MUL не используется, в программе есть цикл.',
+   hints:['Умножение A × B – это A, сложенное B раз. Используйте B как счётчик цикла.',
+          'Если B = 0, цикл выполнять нельзя: перед циклом сравните B с нулём и сразу перейдите к HLT.'],
+   must:[], forbid:['MUL'], loop:true,
+   tests:[{setup:{A:3,B:4},expect:{reg:{C:12}}},{setup:{A:7,B:0},expect:{reg:{C:0}}},{setup:{A:1,B:9},expect:{reg:{C:9}}},{setup:{A:12,B:12},expect:{reg:{C:144}}},{setup:{A:0,B:5},expect:{reg:{C:0}}}]},
+  {id:11, pts:1, title:'Строка звёздочек',
+   short:'Вывести на экран A звёздочек в цикле.',
+   goal:['В регистре A заранее записано число от 1 до 10.','Выведите на экран, начиная с первой позиции (ячейка 232), столько символов «*», сколько указано в A. Используйте цикл.'],
+   example:"MOV D, 240\nMOV [D], 'X'   ; записать X в ячейку, адрес которой хранится в D\nINC D          ; теперь D указывает на следующую ячейку\nHLT",
+   crit:'На экране ровно A звёздочек для A = 3, 5, 10. В программе есть цикл.',
+   hints:['Храните адрес ячейки экрана в регистре, например в D. В цикле записывайте звёздочку в [D] и увеличивайте D.',
+          'Перед циклом: D = 232. В цикле: MOV [D], \'*\', INC D, DEC A и переход назад, пока A не станет равным 0.'],
+   must:[], loop:true,
+   tests:[{setup:{A:3},expect:{out:'***'}},{setup:{A:5},expect:{out:'*****'}},{setup:{A:10},expect:{out:'**********'}}]},
+  {id:12, pts:1, title:'Наибольший общий делитель',
+   short:'Найти НОД чисел A и B.',
+   goal:['В регистрах A и B заранее записаны числа от 1 до 100.','Найдите их наибольший общий делитель (НОД) и запишите его в регистр C.','Используйте алгоритм Евклида: пока числа не равны, из большего вычитайте меньшее. Когда числа станут равны, это и будет НОД.'],
+   example:"CMP D, 10   ; сравнить D и 10: если D меньше 10, флаг C = 1\nJC m1       ; если C = 1, перейти к метке m1\nMOV D, 0    ; эта команда выполнится, только если D не меньше 10\nm1: HLT",
+   crit:'C = НОД(A, B) на пяти наборах чисел. В программе есть цикл.',
+   hints:['В начале цикла сравните A и B. Если они равны, выйдите из цикла. Если A меньше, вычтите A из B, иначе вычтите B из A, и вернитесь к началу цикла.',
+          'Понадобятся три метки: начало цикла, ветка «A меньше B» и конец. После CMP A, B используйте JZ для выхода и JC для перехода к ветке «A меньше B». В конце скопируйте A в C.'],
+   must:['CMP'], loop:true,
+   tests:[{setup:{A:12,B:18},expect:{reg:{C:6}}},{setup:{A:7,B:5},expect:{reg:{C:1}}},{setup:{A:20,B:20},expect:{reg:{C:20}}},{setup:{A:9,B:27},expect:{reg:{C:9}}},{setup:{A:100,B:75},expect:{reg:{C:25}}}]},
+];
+TASKS.forEach(t=>{ t.label=String(t.id); t.starter=`; Задание ${t.id}. ${t.title}\n; Пишите по одной команде в строке\n\n` });
+BONUS.forEach((t,i)=>{ t.bonus=true; t.label='Д'+(i+1); t.starter=`; Дополнительное задание ${i+1}. ${t.title}\n\n` });
+const ALL=TASKS.concat(BONUS);
+const TOTAL = TASKS.reduce((s,t)=>s+t.pts,0);
+
+/* ===================== helpers ===================== */
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const plural = (n,a,b,c)=>{n=Math.abs(n)%100;const d=n%10;if(n>10&&n<20)return c;if(d>1&&d<5)return b;if(d===1)return a;return c};
+const fmt = x => String(x).replace('.',',');
+const bin = v => v.toString(2).padStart(8,'0');
+const chr = v => v===0 ? ' ' : (v<32||v>126) ? '·' : String.fromCharCode(v);
+
+/* ===================== state ===================== */
+const KEY='cpu-trainer-state-v1';
+const fresh = attempt => ({name:'',group:'',attempt,solved:{},fails:{},code:{},last:{},submitted:false,submittedAt:null,bonusDone:false,screen:'login',task:1});
+let S = (()=>{ try{ const s=localStorage.getItem(KEY); return s?JSON.parse(s):null }catch(e){ return null } })() || fresh(1);
+function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)) }catch(e){} }
+function taskPoints(t){ return S.solved[t.id] ? t.pts : 0 }
+function score(){ return TASKS.reduce((s,t)=>s+taskPoints(t),0) }
+function grade(p){ return p>=10?5 : p>=7?4 : p>=4?3 : 2 }
+function bonusSolved(){ return BONUS.filter(t=>S.solved[t.id]).length }
+function bonusGrade(n){ return n>=4?5 : n>=3?4 : n>=2?3 : null }
+function mode(){ return !S.submitted?'main' : !S.bonusDone?'bonus' : 'done' }
+function active(){ return mode()==='main'?TASKS:BONUS }
+const GWORD={5:'отлично',4:'хорошо',3:'удовлетворительно',2:'неудовлетворительно'};
+
+/* ===================== assembler ===================== */
+const REGS={A:0,B:1,C:2,D:3,SP:4}, REGN=['A','B','C','D','SP'];
+const ALIAS={JE:'JZ',JNE:'JNZ',JB:'JC',JNAE:'JC',JNB:'JNC',JAE:'JNC',JNBE:'JA',JBE:'JNA',SAL:'SHL',SAR:'SHR'};
+const NOPS={MOV:2,ADD:2,SUB:2,CMP:2,AND:2,OR:2,XOR:2,SHL:2,SHR:2,MUL:1,DIV:1,INC:1,DEC:1,NOT:1,POP:1,PUSH:1,JMP:1,JC:1,JNC:1,JZ:1,JNZ:1,JA:1,JNA:1,CALL:1,RET:0,HLT:0,DB:1};
+const BASE={HLT:0,ADD:10,SUB:14,INC:18,DEC:19,CMP:20,JMP:30,JC:32,JNC:34,JZ:36,JNZ:38,JA:40,JNA:42,CALL:44,PUSH:50,POP:54,RET:57,MUL:60,DIV:64,AND:70,OR:74,XOR:78,NOT:82,SHL:90,SHR:94,MOV:100};
+const JUMPS=['JMP','JC','JNC','JZ','JNZ','JA','JNA','CALL'], CONDJ=['JC','JNC','JZ','JNZ','JA','JNA'];
+const SRC=['reg','regaddr','addr','const'];
+const FORMS={MOV:[['reg','regaddr','addr'],SRC]};
+['ADD','SUB','CMP','AND','OR','XOR','SHL','SHR'].forEach(m=>FORMS[m]=[['reg'],SRC]);
+['MUL','DIV','PUSH'].forEach(m=>FORMS[m]=[SRC]);
+['INC','DEC','NOT','POP'].forEach(m=>FORMS[m]=[['reg']]);
+JUMPS.forEach(m=>FORMS[m]=[['const']]);
+const SP_OK=['MOV','ADD','SUB','CMP','INC','DEC'];
+const KINDW={reg:'регистр',regaddr:'ячейка памяти',addr:'ячейка памяти',const:'число'};
+const KIDX={reg:0,regaddr:1,addr:2,const:3};
+
+class AsmError{constructor(line,msg){this.line=line;this.msg=msg}}
+function stripComment(s){ let q=null; for(let i=0;i<s.length;i++){const c=s[i]; if(q){ if(c===q) q=null } else if(c==='"'||c==="'") q=c; else if(c===';') return s.slice(0,i)} return s }
+function splitOps(s){ const out=[]; let cur='',q=null; for(const c of s){ if(q){cur+=c; if(c===q)q=null} else if(c==='"'||c==="'"){q=c;cur+=c} else if(c===','){out.push(cur.trim());cur=''} else cur+=c } out.push(cur.trim()); return out }
+function num(t){
+  t=t.trim(); let m;
+  if(/^\d+d?$/i.test(t)) return parseInt(t,10);
+  if(/^0x[0-9a-f]+$/i.test(t)) return parseInt(t.slice(2),16);
+  if(/^0o[0-7]+$/i.test(t)) return parseInt(t.slice(2),8);
+  if(/^[01]+b$/i.test(t)) return parseInt(t.slice(0,-1),2);
+  if((m=t.match(/^'(.)'$/u))) return m[1].codePointAt(0);
+  return null;
+}
+function lev(a,b){const d=Array.from({length:a.length+1},(_,i)=>[i]);for(let j=1;j<=b.length;j++)d[0][j]=j;for(let i=1;i<=a.length;i++)for(let j=1;j<=b.length;j++)d[i][j]=Math.min(d[i-1][j]+1,d[i][j-1]+1,d[i-1][j-1]+(a[i-1]===b[j-1]?0:1));return d[a.length][b.length]}
+function suggest(w){ let best=null,bd=9; for(const k of [...Object.keys(NOPS),...Object.keys(ALIAS)]){const d=lev(w,k); if(d<bd){bd=d;best=k}} return bd<=2?best:null }
+
+function parseOperand(tok, line, labels, final){
+  const t=tok.trim();
+  if(!t) throw new AsmError(line,'Пропущен операнд: проверьте запятые.');
+  const value = (s, inBr) => {
+    const n=num(s);
+    if(n!==null){
+      if(/^'/.test(s) && n>255) throw new AsmError(line,`Символ ${s} нельзя записать в 8 бит. Используйте латинские буквы и цифры.`);
+      if(n>255) throw new AsmError(line,`Число ${s} не помещается в 8 бит: допустимы числа от 0 до 255.`);
+      return {v:n, src:s};
+    }
+    if(/^[\p{L}_.][\p{L}\d_.]*$/u.test(s)){
+      const key=s.toUpperCase();
+      if(labels[key]) return {v:labels[key].addr, src:s, label:labels[key].name};
+      if(final) throw new AsmError(line, `«${s}» не является регистром, числом или меткой. Регистры: A, B, C, D. Если это метка, проверьте, что она объявлена с двоеточием.`);
+      return {v:0, src:s, label:s};
+    }
+    throw new AsmError(line,`Не удалось разобрать «${s}».`);
+  };
+  if(/^\[.*\]$/.test(t)){
+    const inner=t.slice(1,-1).trim();
+    let m=inner.match(/^([A-Za-z]+)\s*([+-])\s*(\d+)$/);
+    if(m && REGS[m[1].toUpperCase()]!==undefined){
+      const off=(m[2]==='-'?-1:1)*parseInt(m[3],10);
+      if(off<-16||off>15) throw new AsmError(line,'Смещение в квадратных скобках должно быть от -16 до +15.');
+      return {k:'regaddr', r:REGS[m[1].toUpperCase()], off};
+    }
+    if(REGS[inner.toUpperCase()]!==undefined) return {k:'regaddr', r:REGS[inner.toUpperCase()], off:0};
+    return {k:'addr', ...value(inner,true)};
+  }
+  if(REGS[t.toUpperCase()]!==undefined) return {k:'reg', r:REGS[t.toUpperCase()]};
+  if(/^"/.test(t)) throw new AsmError(line,'Строку в кавычках можно использовать только в DB.');
+  return {k:'const', ...value(t,false)};
+}
+
+function assemble(src){
+  const lines=src.split('\n'), items=[];
+  lines.forEach((raw,i)=>{
+    let s=stripComment(raw).trim(); if(!s) return;
+    const it={line:i+1,label:null,mn:null,args:[]};
+    const lm=s.match(/^([\p{L}_.][\p{L}\d_.]*)\s*:/u);
+    if(lm){ it.label=lm[1]; s=s.slice(lm[0].length).trim() }
+    if(s){ const mm=s.match(/^(\S+)\s*(.*)$/); it.mn=mm[1].toUpperCase(); it.args=mm[2].trim()?splitOps(mm[2]):[]; it.text=s.replace(/\s+/g,' ') }
+    items.push(it);
+  });
+  const labels={}; let addr=0;
+  for(const it of items){
+    if(it.label){
+      const key=it.label.toUpperCase();
+      if(REGS[key]!==undefined) throw new AsmError(it.line,`«${it.label}» является именем регистра, его нельзя использовать как метку.`);
+      if(labels[key]) throw new AsmError(it.line,`Метка «${it.label}» уже объявлена в строке ${labels[key].line}.`);
+      labels[key]={addr,name:it.label,line:it.line};
+    }
+    if(!it.mn) continue;
+    const m=ALIAS[it.mn]||it.mn;
+    if(!(m in NOPS)){ const sg=suggest(it.mn); throw new AsmError(it.line,`Команды ${it.mn} нет в системе команд процессора.`+(sg?' Похоже на опечатку: сравните написание с таблицей команд в разделе «Теория».':' Найдите в таблице команд (раздел «Теория») команду, которая выполняет нужное действие.')) }
+    it.m=m;
+    if(it.args.length!==NOPS[m]){
+      const need=NOPS[m];
+      throw new AsmError(it.line, need===0?`Команда ${it.mn} пишется без операндов.`:`Команде ${it.mn} нужно ${need} ${plural(need,'операнд','операнда','операндов')}, а указано ${it.args.length}.`+(need===2?' Операнды пишутся через запятую: первый показывает, куда записать результат, второй показывает значение.':''));
+    }
+    if(m==='DB'){ const a=it.args[0]; it.size = /^".*"$/.test(a) ? a.length-2 : 1 }
+    else it.size=1+NOPS[m];
+    it.addr=addr; addr+=it.size;
+  }
+  if(addr>232) throw new AsmError(items[items.length-1].line,`Программа занимает ${addr} байт и залезает в область экрана (адреса 232–255).`);
+  const bytes=new Uint8Array(256), instrs=new Map();
+  for(const it of items){
+    if(!it.m) continue;
+    if(it.m==='DB'){
+      const a=it.args[0];
+      if(/^".*"$/.test(a)){ [...a.slice(1,-1)].forEach((c,i)=>{ const v=c.codePointAt(0); if(v>255) throw new AsmError(it.line,'В строке есть символ, который не помещается в 8 бит.'); bytes[it.addr+i]=v }) }
+      else { const o=parseOperand(a,it.line,labels,true); if(o.k!=='const') throw new AsmError(it.line,'DB задаёт число, символ или строку.'); bytes[it.addr]=o.v }
+      it.data=true; continue;
+    }
+    it.ops=it.args.map(a=>parseOperand(a,it.line,labels,true));
+    const forms=FORMS[it.m];
+    it.ops.forEach((o,i)=>{
+      if(!forms[i].includes(o.k)){
+        if(i===0 && o.k==='const' && !JUMPS.includes(it.m)) throw new AsmError(it.line,`Первый операнд команды ${it.mn} показывает, куда записать результат. Это должен быть ${forms[0].includes('addr')?'регистр или ячейка памяти':'регистр'}, а не число.`);
+        if(JUMPS.includes(it.m)) throw new AsmError(it.line,`После ${it.mn} нужно указать метку, к которой перейти.`);
+        throw new AsmError(it.line,`Команда ${it.mn}: операнд ${i+1} не может быть ${o.k==='addr'||o.k==='regaddr'?'ячейкой памяти':KINDW[o.k]==='число'?'числом':'регистром'}.`);
+      }
+      if(o.k==='reg' && o.r===4 && !SP_OK.includes(it.m)) throw new AsmError(it.line,`Регистр SP нельзя использовать в команде ${it.mn}.`);
+    });
+    if(it.m==='MOV' && it.ops[0].k!=='reg' && it.ops[1].k!=='reg' && it.ops[1].k!=='const') throw new AsmError(it.line,'MOV не копирует из памяти в память напрямую. Сначала скопируйте значение в регистр.');
+    let op;
+    if(it.m==='MOV') op=BASE.MOV + KIDX[it.ops[0].k]*4 + KIDX[it.ops[1].k];
+    else if(NOPS[it.m]===2) op=BASE[it.m]+KIDX[it.ops[1].k];
+    else if(['MUL','DIV','PUSH'].includes(it.m)) op=BASE[it.m]+KIDX[it.ops[0].k];
+    else op=BASE[it.m];
+    const enc=[op, ...it.ops.map(o=> o.k==='reg'?o.r : o.k==='regaddr'? (((o.off+32)&31)<<3)|o.r : o.v)];
+    enc.forEach((b,i)=>bytes[it.addr+i]=b);
+    it.bytes=enc;
+    instrs.set(it.addr,it);
+  }
+  const addrLabel={}; Object.values(labels).forEach(l=>{ if(!(l.addr in addrLabel)) addrLabel[l.addr]=l.name });
+  return {bytes,instrs,items,end:addr,labels,addrLabel};
+}
+
+/* ===================== CPU ===================== */
+class RunError{constructor(msg){this.msg=msg}}
+function newCpu(prog,setup){
+  const c={r:[0,0,0,0],sp:231,ip:0,z:0,c:0,mem:new Uint8Array(prog.bytes),halted:false,steps:0,err:false};
+  for(const k in (setup||{})) c.r[REGS[k]]=setup[k];
+  return c;
+}
+const regv=(c,r)=> r===4?c.sp:c.r[r];
+function setReg(c,r,v){ if(r===4) c.sp=v&255; else c.r[r]=v&255 }
+const addrOf=(c,o)=> o.k==='addr'? o.v : (regv(c,o.r)+o.off+256)&255;
+function getv(c,o){ return o.k==='reg'?regv(c,o.r) : o.k==='const'?o.v : c.mem[addrOf(c,o)] }
+function setv(c,o,v){ if(o.k==='reg') setReg(c,o.r,v); else c.mem[addrOf(c,o)]=v&255 }
+function opText(o){
+  if(o.k==='reg') return REGN[o.r];
+  if(o.k==='const') return o.src;
+  if(o.k==='addr') return `[${o.src}]`;
+  return `[${REGN[o.r]}${o.off? (o.off>0?'+':'')+o.off :''}]`;
+}
+function memWhere(c,o){ const a=addrOf(c,o); return o.k==='regaddr' ? `ячейку ${a} (адрес взят из регистра ${REGN[o.r]})` : `ячейку ${a}` }
+function where(prog,a){ const l=prog.addrLabel[a]; return l?`метке ${l} (адрес ${a})`:`адресу ${a}` }
+
+function step(c,prog){
+  const it=prog.instrs.get(c.ip);
+  if(!it){
+    const d=prog.items.find(x=>x.data && c.ip>=x.addr && c.ip<x.addr+x.size);
+    if(d) throw new RunError(`По адресу ${c.ip} лежат данные (DB), а не команда. Поставьте HLT перед данными.`);
+    throw new RunError(`Процессор дошёл до адреса ${c.ip}, где нет команды, и не может продолжить работу. Какой командой должна заканчиваться программа?`);
+  }
+  const ip0=c.ip, next=ip0+it.size, t=[]; let jumped=false;
+  const [o1,o2]=it.ops;
+  const d1=o1?opText(o1):'';
+  const fz=v=>{ c.z = v===0?1:0; return v===0?' Результат равен 0, поэтому флаг нуля Z = 1.':' Результат не равен 0, поэтому Z = 0.' };
+  const arith=(sym,a,b,r)=>{
+    const v=((r%256)+256)%256; setv(c,o1,v);
+    let s=`${d1} = ${d1} ${sym} ${opText(o2||{k:'const',src:'1'})} = ${a} ${sym} ${b} = ${r}.`;
+    if(r>255){ c.c=1; s+=` Число ${r} больше 255 и не помещается в 8 бит: в ${d1} записано ${r} − 256 = ${v}, флаг переноса C = 1.` }
+    else if(r<0){ c.c=1; s+=` Результат отрицательный, а регистр хранит только числа от 0 до 255: в ${d1} записано ${r} + 256 = ${v}, флаг переноса C = 1.` }
+    else { c.c=0; s+=' Переноса нет, C = 0.' }
+    return s+fz(v);
+  };
+  switch(it.m){
+    case 'MOV':{
+      const v=getv(c,o2);
+      if(o1.k==='reg'){
+        const old=regv(c,o1.r); setv(c,o1,v);
+        const nm=o1.r===4?'указатель стека SP':`регистр ${d1}`;
+        if(o2.k==='const') t.push(`В ${nm} записано число ${v}${/^'/.test(o2.src)?` (код символа ${o2.src})`:''}${old!==v?`, раньше там было ${old}`:''}.`);
+        else if(o2.k==='reg') t.push(`Значение регистра ${opText(o2)} (${v}) скопировано в ${nm}.`);
+        else t.push(`Из памяти прочитана ${memWhere(c,o2)}: там число ${v}. Оно записано в ${nm}.`);
+      } else {
+        const a=addrOf(c,o1); setv(c,o1,v);
+        let s=`В ${memWhere(c,o1)} записано ${o2.k==='reg'?`значение регистра ${opText(o2)} (${v})`:`число ${v}`}.`;
+        if(a>=232) s+= v>=32&&v<=126 ? ` Эта ячейка относится к экрану, поэтому на нём появился символ «${chr(v)}».` : ` Эта ячейка относится к экрану, но ${v} является кодом непечатного символа.`;
+        t.push(s);
+      }
+      break;}
+    case 'ADD':{const a=getv(c,o1),b=getv(c,o2); t.push(arith('+',a,b,a+b)); break;}
+    case 'SUB':{const a=getv(c,o1),b=getv(c,o2); t.push(arith('−',a,b,a-b)); break;}
+    case 'INC':{const a=getv(c,o1); t.push(arith('+',a,1,a+1)); break;}
+    case 'DEC':{const a=getv(c,o1); t.push(arith('−',a,1,a-1)); break;}
+    case 'MUL':{const a=c.r[0],b=getv(c,o1),r=a*b,v=r&255; c.r[0]=v; c.c=r>255?1:0;
+      let s=`A = A × ${d1} = ${a} × ${b} = ${r}. Команда MUL всегда умножает регистр A.`;
+      if(r>255) s+=` Число ${r} больше 255: в A остались младшие 8 бит, то есть ${v}, флаг C = 1.`; else s+=' C = 0.';
+      t.push(s+fz(v)); break;}
+    case 'DIV':{const a=c.r[0],b=getv(c,o1); if(b===0) throw new RunError('Деление на ноль: команда DIV не может делить на 0.');
+      const v=Math.floor(a/b); c.r[0]=v; c.c=0; t.push(`A = A ÷ ${d1} = ${a} ÷ ${b} = ${v} (остаток отбрасывается). Команда DIV всегда делит регистр A.`+fz(v)); break;}
+    case 'AND': case 'OR': case 'XOR':{const a=getv(c,o1),b=getv(c,o2),v= it.m==='AND'?a&b : it.m==='OR'?a|b : a^b; setv(c,o1,v); c.c=0;
+      t.push(`${d1} = ${a} ${it.m} ${b}. По битам: ${bin(a)} ${it.m} ${bin(b)} = ${bin(v)}, то есть ${v}.`+fz(v)); break;}
+    case 'NOT':{const a=getv(c,o1),v=(~a)&255; setv(c,o1,v); c.c=0; t.push(`Все биты ${d1} инвертированы: ${bin(a)} → ${bin(v)}, то есть ${a} → ${v}.`+fz(v)); break;}
+    case 'SHL': case 'SHR':{const a=getv(c,o1),b=getv(c,o2); const r= it.m==='SHL'? a*Math.pow(2,b) : Math.floor(a/Math.pow(2,b)); const v=r&255; setv(c,o1,v);
+      c.c = it.m==='SHL' && r>255 ? 1:0;
+      t.push(`Сдвиг ${d1} ${it.m==='SHL'?'влево':'вправо'} на ${b}: ${bin(a)} → ${bin(v)}. Это ${it.m==='SHL'?'умножение':'деление'} на ${Math.pow(2,b)}: ${a} → ${v}.`+(c.c?' Часть битов вышла за пределы регистра, C = 1.':'')+fz(v)); break;}
+    case 'CMP':{const a=getv(c,o1),b=getv(c,o2); c.z=a===b?1:0; c.c=a<b?1:0;
+      t.push(`Сравнение ${d1} (${a}) и ${opText(o2)} (${b}): `+(a===b?'числа равны, поэтому Z = 1, C = 0.': a<b?`${a} меньше ${b}, поэтому C = 1, Z = 0.`:`${a} больше ${b}, поэтому C = 0, Z = 0.`)+' Сами регистры не изменились: CMP только выставляет флаги для следующего условного перехода.'); break;}
+    case 'JMP':{c.ip=o1.v; jumped=true; t.push(`Безусловный переход к ${where(prog,o1.v)}: в IP записан адрес ${o1.v}.`); break;}
+    case 'JC': case 'JNC': case 'JZ': case 'JNZ': case 'JA': case 'JNA':{
+      const cond={JC:['C = 1',c.c===1],JNC:['C = 0',c.c===0],JZ:['Z = 1',c.z===1],JNZ:['Z = 0',c.z===0],JA:['C = 0 и Z = 0',c.c===0&&c.z===0],JNA:['C = 1 или Z = 1',c.c===1||c.z===1]}[it.m];
+      let s=`Условный переход: ${it.mn} переходит, если ${cond[0]}. Сейчас Z = ${c.z}, C = ${c.c}. `;
+      if(cond[1]){ c.ip=o1.v; jumped=true; s+=`Условие выполнено, выполняется переход к ${where(prog,o1.v)}.` }
+      else s+='Условие не выполнено, поэтому перехода нет: выполняется следующая команда.';
+      t.push(s); break;}
+    case 'PUSH':{const v=getv(c,o1),sp0=c.sp; if(sp0<prog.end) throw new RunError('Стек переполнен: он дошёл до кода программы.'); c.mem[sp0]=v; c.sp=sp0-1;
+      t.push(`Число ${v} помещено в стек (ячейка ${sp0}). Указатель стека SP уменьшился: ${sp0} → ${c.sp}.`); break;}
+    case 'POP':{const sp0=c.sp; if(sp0>=231) throw new RunError('Стек пуст: нечего извлекать командой POP.'); c.sp=sp0+1; const v=c.mem[c.sp]; setv(c,o1,v);
+      t.push(`Из стека (ячейка ${c.sp}) извлечено число ${v} и записано в регистр ${d1}. SP: ${sp0} → ${c.sp}.`); break;}
+    case 'CALL':{const sp0=c.sp; if(sp0<prog.end) throw new RunError('Стек переполнен.'); c.mem[sp0]=next; c.sp=sp0-1; c.ip=o1.v; jumped=true;
+      t.push(`Вызов подпрограммы: адрес возврата ${next} сохранён в стеке, переход к ${where(prog,o1.v)}.`); break;}
+    case 'RET':{const sp0=c.sp; if(sp0>=231) throw new RunError('RET без CALL: в стеке нет адреса возврата.'); c.sp=sp0+1; const v=c.mem[c.sp]; c.ip=v; jumped=true;
+      t.push(`Возврат из подпрограммы: из стека взят адрес ${v}, выполнение продолжается с него.`); break;}
+    case 'HLT':{c.halted=true; t.push('HLT: процессор остановлен, программа завершена.'); break;}
+  }
+  c.steps++;
+  if(!jumped && !c.halted){ c.ip=next; t.push(`IP: ${ip0} → ${next}, потому что команда занимает ${it.size} ${plural(it.size,'байт','байта','байт')}.`) }
+  return {it,text:t,n:c.steps};
+}
+const MAXSTEPS=1000;
+function runAll(c,prog,log){
+  while(!c.halted){
+    if(c.steps>=MAXSTEPS) throw new RunError(`Программа выполнила ${MAXSTEPS} команд и не остановилась: цикл не заканчивается. Проверьте, меняется ли внутри цикла значение, от которого зависит условный переход.`);
+    const r=step(c,prog); if(log) log.push(r);
+  }
+}
+function outStr(c){ let s=''; for(let a=232;a<256;a++) s+= c.mem[a]===0?' ':String.fromCharCode(c.mem[a]); return s.replace(/\s+$/,'') }
+
+/* ===================== checker ===================== */
+function inputsText(setup){ const k=Object.keys(setup||{}); return k.length? k.map(x=>`${x} = ${setup[x]}`).join(', ') : '' }
+function checkTask(task,src){
+  let prog;
+  try{ prog=assemble(src) }catch(e){ if(e instanceof AsmError) return {ok:false,asm:e}; throw e }
+  const code=prog.items.filter(i=>i.m && !i.data);
+  if(!code.length) return {ok:false,asm:new AsmError(1,'Программа пустая.')};
+  const used=new Set(code.map(i=>i.m));
+  const reqs=[];
+  task.must.forEach(m=>reqs.push({ok:used.has(m),text:`В программе есть команда ${m}`,lead:`По условию задания нужна команда ${m}. Какое действие она выполняет и в каком месте программы она нужна?`}));
+  (task.forbid||[]).forEach(m=>reqs.push({ok:!used.has(m),text:`Команда ${m} не используется`,forbid:true,lead:`По условию задания команду ${m} использовать нельзя. Как получить тот же результат другими командами?`}));
+  if(task.cond) reqs.push({ok:CONDJ.some(j=>used.has(j)),text:'Есть условный переход (JZ, JNZ, JC, JNC…)',lead:'Нужен условный переход: команда, которая выполняет переход только при определённом значении флага. Найдите такие команды в таблице.'});
+  if(task.loop) reqs.push({ok:code.some(i=>JUMPS.includes(i.m)&&i.m!=='CALL'&&i.ops[0].v<=i.addr),text:'Есть цикл: переход назад к уже выполненным командам',lead:'Задание нужно решить с помощью цикла: несколько команд должны повторяться, а команда перехода должна вести назад, к метке выше.'});
+  const tests=task.tests.map((tc,i)=>{
+    const c=newCpu(prog,tc.setup); let err=null;
+    try{ runAll(c,prog) }catch(e){ if(e instanceof RunError) err=e.msg; else throw e }
+    const exp=[],got=[]; let ok=!err;
+    for(const k in (tc.expect.reg||{})){ const g=c.r[REGS[k]], w=tc.expect.reg[k]; exp.push(`${k} = ${w}`); got.push(`${k} = ${g}`); if(g!==w) ok=false }
+    for(const k in (tc.expect.flags||{})){ const g=k==='C'?c.c:c.z, w=tc.expect.flags[k]; exp.push(`флаг ${k} = ${w}`); got.push(`флаг ${k} = ${g}`); if(g!==w) ok=false }
+    if(tc.expect.out!==undefined){ const g=outStr(c); exp.push(`на экране «${tc.expect.out}»`); got.push(`на экране «${g}»`); if(g!==tc.expect.out) ok=false }
+    return {ok,n:i+1,inp:inputsText(tc.setup),exp:exp.join(', '),got:got.join(', '),err,c,tc};
+  });
+  return {ok: tests.every(x=>x.ok)&&reqs.every(x=>x.ok), tests, reqs};
+}
+function diagnose(task,r){
+  if(r.asm||r.ok) return null;
+  const fb=r.reqs.find(x=>!x.ok&&x.forbid); if(fb) return fb.lead;
+  const f=r.tests.find(x=>!x.ok);
+  if(f){
+    if(f.err) return null;
+    return (task.diag&&task.diag(f.c,f.tc)) || `${f.inp?`При ${f.inp} о`:'О'}жидалось ${f.exp}, а получено ${f.got}. Выполните программу кнопкой «Шаг» и найдите команду, после которой значение становится неверным.`;
+  }
+  const q=r.reqs.find(x=>!x.ok); return q?q.lead:null;
+}
+
+/* ===================== UI: navigation ===================== */
+const SCREENS=['login','theory','tasks','work','result'];
+function show(name){
+  const m=mode();
+  if(m==='done' && name!=='login') name='result';
+  if(m==='main' && name==='result') name='tasks';
+  S.screen=name; save();
+  SCREENS.forEach(s=>$('#scr-'+s).hidden = s!==name);
+  $('#top').hidden = name==='login';
+  $('#nav').hidden = m==='done';
+  $('#navResult').hidden = m!=='bonus';
+  $('#submitBtn').hidden = m==='done';
+  $('#submitBtn').textContent = m==='bonus' ? 'Сдать доп. задания' : 'Сдать работу';
+  document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on', b.dataset.go===name || (name==='work'&&b.dataset.go==='tasks')));
+  renderHeader();
+  if(name==='tasks') renderCards();
+  if(name==='result') renderResult();
+  window.scrollTo(0,0);
+}
+document.addEventListener('click',e=>{ const g=e.target.closest('[data-go]'); if(g) show(g.dataset.go) });
+function renderHeader(){
+  $('#who').textContent = S.name ? `${S.name} · ${S.group}` : '';
+  const m=mode();
+  $('#score').textContent = m==='main' ? `${fmt(score())} из ${TOTAL} баллов` : m==='bonus' ? `Доп. задания: решено ${bonusSolved()} из ${BONUS.length}` : '';
+}
+
+/* login */
+$('#loginForm').addEventListener('submit',e=>{
+  e.preventDefault();
+  const n=$('#fio').value.trim(), g=$('#grp').value.trim();
+  if(!n||!g){ $('#loginErr').hidden=false; return }
+  S.name=n; S.group=g; save(); show('theory');
+});
+
+/* register renderer */
+let BASEV=10;
+const fmtv=v=> BASEV===16 ? v.toString(16).toUpperCase().padStart(2,'0')+'h' : String(v);
+const REGINFO=['A','B','C','D','IP','SP'];
+function regsHTML(vals,changed){ return REGINFO.map((n,i)=>`<div class="reg${changed&&changed[i]?' chg':''}"><span class="rn">${n}</span><span class="bits">${bin(vals[i])}</span><span class="rv">${fmtv(vals[i])}</span></div>`).join('') }
+
+/* ===================== task list ===================== */
+function statusOf(t){
+  if(S.solved[t.id]) return ['ok','Решено'];
+  if(S.last[t.id]===false) return ['bad','Есть ошибки'];
+  if(S.code[t.id] && S.code[t.id]!==t.starter) return ['none','Начато'];
+  return ['none','Не начато'];
+}
+function renderCards(){
+  const list=active(), b=mode()==='bonus', solved=list.filter(t=>S.solved[t.id]).length;
+  $('#tasksTitle').textContent = b ? 'Дополнительные задания' : 'Задания';
+  $('#listSummary').textContent = b ? `Основная оценка: ${grade(score())}. Решено ${solved} из ${list.length}. Доп. оценка: 4 решено – «5», 3 – «4», 2 – «3».` : `Решено ${solved} из ${list.length}, баллов: ${fmt(score())} из ${TOTAL}`;
+  $('#cards').innerHTML=`<tr><th>№</th><th>Задание</th>${b?'':'<th>Баллы</th>'}<th>Статус</th></tr>`+list.map(t=>{ const [cls,txt]=statusOf(t);
+    return `<tr><td>${t.label}</td><td><a data-task="${t.id}" tabindex="0" role="button">${esc(t.title)}</a><div class="small">${esc(t.short)}</div></td>${b?'':`<td>${t.pts}</td>`}<td class="${cls}">${txt}</td></tr>` }).join('');
+}
+$('#cards').addEventListener('keydown',e=>{ const c=e.target.closest('[data-task]'); if(c&&e.key==='Enter') openTask(+c.dataset.task) });
+$('#cards').addEventListener('click',e=>{ const c=e.target.closest('[data-task]'); if(c) openTask(+c.dataset.task) });
+
+/* ===================== workspace ===================== */
+const W={prog:null,cpu:null,dirty:true,prev:null,changedMem:new Set(),hintArm:false};
+const code=$('#code'), gutter=$('#gutter'), logEl=$('#log');
+let curTask=null;
+
+function openTask(id){
+  curTask=active().find(t=>t.id===id); if(!curTask){ show('tasks'); return }
+  S.task=id; save();
+  code.value = S.code[id] ?? curTask.starter;
+  W.result=null;
+  renderTaskPane();
+  resetMachine(false);
+  show('work');
+}
+function renderTaskPane(){
+  const t=curTask, setup=t.tests[0].setup, inp=inputsText(setup);
+  const solved=S.solved[t.id];
+  const L=active(), idx=L.indexOf(t);
+  let h=`<p class="small">${t.bonus?`Дополнительное задание ${idx+1} из ${L.length}`:`Задание ${t.id} из ${L.length}, ${t.pts} ${plural(t.pts,'балл','балла','баллов')}`}</p><h2>${esc(t.title)}</h2>`;
+  h+=t.goal.map(p=>`<p>${esc(p)}</p>`).join('');
+  if(inp) h+=`<div class="inputs">При запуске заранее записано: ${esc(inp)}<br><span class="small">При проверке числа будут другими.</span></div>`;
+  if(t.example) h+=`<div><b>Пример</b> (с другими регистрами и числами):<pre class="inputs" style="margin:4px 0 0;white-space:pre-wrap">${esc(t.example)}</pre></div>`;
+  h+=`<p><b>Проверка:</b> ${esc(t.crit)}</p>`;
+  if(solved) h+= t.bonus ? `<p class="ok"><b>Задание решено.</b></p>` : `<p class="ok"><b>Задание решено.</b> Баллы: ${fmt(taskPoints(t))}</p>`;
+  const fails=(S.fails||{})[t.id]||0;
+  if(!solved){
+    if(fails>=2) h+=`<div class="hintbox"><b>Подсказка 1.</b> ${esc(t.hints[0])}</div>`;
+    if(fails>=4) h+=`<div class="hintbox"><b>Подсказка 2.</b> ${esc(t.hints[1])}</div>`;
+  }
+  h+=`<div class="results" id="results"></div>`;
+  h+=`<div class="links"><button class="btn" data-go="tasks">К списку заданий</button>${idx<L.length-1?`<button class="btn" id="nextTask">Следующее задание</button>`:''}</div>`;
+  $('#taskPane').innerHTML=h;
+  if(W.result) renderResults(W.result);
+}
+$('#taskPane').addEventListener('click',e=>{
+  const id=e.target.id;
+  if(id==='nextTask'){ const L=active(); openTask(L[L.indexOf(curTask)+1].id) }
+});
+
+/* editor */
+let saveT;
+code.addEventListener('input',()=>{ W.dirty=true; S.code[curTask.id]=code.value; clearTimeout(saveT); saveT=setTimeout(save,300); renderGutter(); setStatus() });
+code.addEventListener('scroll',()=>{ gutter.scrollTop=code.scrollTop });
+function blockPaste(e){ e.preventDefault(); logSys('Вставка текста запрещена. Наберите программу вручную.'); }
+code.addEventListener('paste',blockPaste);
+code.addEventListener('drop',blockPaste);
+code.addEventListener('beforeinput',e=>{ if(e.inputType==='insertFromPaste'||e.inputType==='insertFromDrop'||e.inputType==='insertFromPasteAsQuotation') blockPaste(e) });
+code.addEventListener('keydown',e=>{
+  if(e.key==='Tab'&&!e.shiftKey){ e.preventDefault(); const s=code.selectionStart; code.setRangeText('    ',s,code.selectionEnd,'end'); code.dispatchEvent(new Event('input')) }
+  if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){ e.preventDefault(); doCheck() }
+  if(e.key==='F8'){ e.preventDefault(); doStep() }
+});
+let errLine=null;
+function curLine(){ if(!W.cpu||W.dirty||!W.prog) return null; const it=W.prog.instrs.get(W.cpu.ip); return (it && !W.cpu.halted)?it.line:null }
+function renderGutter(){
+  const n=code.value.split('\n').length, cl=curLine();
+  let h=''; for(let i=1;i<=n;i++) h+=`<span class="${i===errLine?'err':i===cl?'cur':''}">${i}</span>`;
+  gutter.innerHTML=h+'<span>&nbsp;</span>'; gutter.scrollTop=code.scrollTop;
+}
+
+/* log */
+function addEntry(cls,html){
+  logEl.querySelector('.empty')?.remove();
+  logEl.querySelectorAll('.entry.last').forEach(x=>x.classList.remove('last'));
+  const d=document.createElement('div'); d.className='entry '+cls; d.innerHTML=html; logEl.appendChild(d);
+  while(logEl.children.length>160) logEl.firstChild.remove();
+  logEl.scrollTop=logEl.scrollHeight;
+}
+function logStep(r,last){
+  const it=r.it;
+  addEntry(last?'last':'',`<div class="h">${esc(it.text)}</div><div class="bx">шаг ${r.n}, строка ${it.line}, адрес ${it.addr}, машинный код: ${it.bytes.join(' ')}</div>${r.text.map(x=>`<div>${esc(x)}</div>`).join('')}`);
+}
+function logSys(t){ addEntry('sys',`<div>${esc(t)}</div>`) }
+function logErr(t,line){ addEntry('err',`<div><b>${line?`Ошибка в строке ${line}`:'Ошибка'}.</b> ${esc(t)}</div>`) }
+function clearLog(){ logEl.innerHTML='<p class="empty">Нажмите «Шаг», чтобы выполнить первую команду. Здесь появится объяснение, что сделал процессор.</p>' }
+$('#bClear').onclick=clearLog;
+
+/* machine */
+function snapshot(){ const c=W.cpu; return c?{regs:[...c.r,c.ip,c.sp],z:c.z,c:c.c,mem:new Uint8Array(c.mem)}:null }
+function loadProgram(){
+  errLine=null;
+  try{ W.prog=assemble(code.value) }
+  catch(e){ if(!(e instanceof AsmError)) throw e; errLine=e.line; W.prog=null; W.cpu=null; logErr(e.msg,e.line); renderGutter(); setStatus('err'); return false }
+  if(!W.prog.instrs.size){ logErr('В программе нет ни одной команды.'); setStatus('err'); return false }
+  W.cpu=newCpu(W.prog,curTask.tests[0].setup); W.dirty=false; W.prev=snapshot();
+  const inp=inputsText(curTask.tests[0].setup);
+  logSys(`Программа переведена в машинный код (${W.prog.end} ${plural(W.prog.end,'байт','байта','байт')}) и записана в память с адреса 0. IP = 0.${inp?` Входные данные: ${inp}.`:''}`);
+  return true;
+}
+function resetMachine(withLog=true){
+  clearLog(); errLine=null;
+  try{ W.prog=assemble(code.value); W.cpu=newCpu(W.prog,curTask.tests[0].setup); W.dirty=false }
+  catch(e){ W.prog=null; W.cpu=null; W.dirty=true }
+  W.prev=snapshot(); W.changedMem.clear();
+  renderGutter(); renderCpu(); setStatus();
+}
+function doStep(){
+  if(W.dirty||!W.cpu){ clearLog(); if(!loadProgram()) { renderCpu(); return } }
+  if(W.cpu.halted){ logSys(W.cpu.err?'Выполнение остановлено из-за ошибки. Исправьте программу и нажмите «Сброс».':'Процессор уже остановлен. Нажмите «Сброс», чтобы выполнить программу сначала.'); return }
+  W.prev=snapshot();
+  try{ logStep(step(W.cpu,W.prog),true) }
+  catch(e){ if(!(e instanceof RunError)) throw e; W.cpu.halted=true; W.cpu.err=true; logErr(e.msg) }
+  renderAfter();
+}
+function doRun(){
+  clearLog(); if(!loadProgram()){ renderCpu(); return }
+  W.prev=snapshot(); const log=[]; let errMsg=null;
+  try{ runAll(W.cpu,W.prog,log) }
+  catch(e){ if(!(e instanceof RunError)) throw e; W.cpu.halted=true; W.cpu.err=true; errMsg=e.msg }
+  const shown=log.slice(-40);
+  if(log.length>40) logSys(`Выполнено ${log.length} команд. Ниже показаны последние 40.`);
+  shown.forEach((r,i)=>logStep(r,i===shown.length-1&&!W.cpu.err));
+  if(W.cpu.err) logErr(errMsg)
+  else logSys(`Готово: выполнено ${W.cpu.steps} ${plural(W.cpu.steps,'команда','команды','команд')}. Итог: A = ${W.cpu.r[0]}, B = ${W.cpu.r[1]}, C = ${W.cpu.r[2]}, D = ${W.cpu.r[3]}, флаги Z = ${W.cpu.z}, C = ${W.cpu.c}.`);
+  renderAfter();
+}
+function renderAfter(){ renderGutter(); renderCpu(); setStatus() }
+$('#bStep').onclick=doStep; $('#bRun').onclick=doRun; $('#bReset').onclick=()=>{ resetMachine(); if(W.cpu) logSys('Сброс: регистры и память возвращены в начальное состояние, IP = 0.') };
+
+function setStatus(force){
+  const s=$('#status'); let cls='',txt='Не запущена';
+  if(force==='err'||(W.cpu&&W.cpu.err)){cls='err';txt='Ошибка'}
+  else if(W.dirty) {txt='Код изменён'}
+  else if(W.cpu&&W.cpu.halted){cls='halt';txt='Остановлен (HLT)'}
+  else if(W.cpu&&W.cpu.steps>0){cls='run';txt=`Выполнено команд: ${W.cpu.steps}`}
+  s.className='status '+cls; s.textContent=txt;
+}
+
+/* cpu view */
+const memEl=$('#mem'), scrEl=$('#screen');
+memEl.innerHTML=Array.from({length:256},(_,i)=>`<span title="адрес ${i}"></span>`).join('');
+function renderCpu(){
+  const c=W.cpu || {r:[0,0,0,0],ip:0,sp:231,z:0,c:0,mem:new Uint8Array(256)};
+  const vals=[...c.r,c.ip,c.sp], p=W.prev;
+  const ch=p? vals.map((v,i)=>v!==p.regs[i]) : null;
+  $('#regs').innerHTML=regsHTML(vals,ch);
+  $('#flags').innerHTML=[['Z',c.z,p&&p.z!==c.z],['C',c.c,p&&p.c!==c.c]].map(([n,v,x])=>`<span class="${x?'chg':''}">${n} = ${v}</span>`).join('');
+  const cur=W.prog&&W.cpu&&!W.dirty? W.prog.instrs.get(c.ip):null;
+  const cells=memEl.children;
+  for(let a=0;a<256;a++){
+    const el=cells[a]; const v=c.mem[a];
+    el.textContent= BASEV===16 ? v.toString(16).toUpperCase().padStart(2,'0') : v;
+    let cls='';
+    if(cur && !c.halted && a>=cur.addr && a<cur.addr+cur.size) cls='ipc';
+    else if(p && p.mem[a]!==v) cls='chg';
+    else if(a>=232) cls='scr';
+    else if(W.prog && a<W.prog.end) cls='code';
+    if(a===c.sp) cls+=' spc';
+    el.className=cls;
+  }
+  scrEl.textContent=Array.from({length:24},(_,i)=>chr(c.mem[232+i])).join('').replace(/\s+$/,'');
+}
+$('#base').addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return; BASEV=+b.dataset.b; $('#base').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b)); renderCpu() });
+
+/* check */
+function doCheck(){
+  const t=curTask, r=checkTask(t,code.value);
+  W.result=r;
+  if(r.asm){ errLine=r.asm.line; renderGutter() } else { errLine=null; renderGutter() }
+  S.last[t.id]=r.ok;
+  if(!r.ok){ S.fails=S.fails||{}; S.fails[t.id]=(S.fails[t.id]||0)+1 }
+  if(r.ok) S.solved[t.id]=true;
+  save(); renderTaskPane(); renderHeader();
+  $('#results')?.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+function renderResults(r){
+  let h='';
+  const row=(ok,txt)=>`<div class="${ok?'ok':'bad'}">${ok?'✓':'✗'} ${txt}</div>`;
+  if(r.asm){ h=`<p class="bad"><b>Программа содержит ошибку.</b></p>`+row(false,`Строка ${r.asm.line}: ${esc(r.asm.msg)}`) }
+  else{
+    h= r.ok ? `<p class="ok"><b>Все тесты пройдены, задание засчитано.</b></p>` : `<p class="bad"><b>Задание пока не решено.</b> Исправьте ошибки и проверьте снова.</p>`;
+    r.tests.forEach(x=>{ h+=row(x.ok,`Тест ${x.n}${x.inp?` (${esc(x.inp)})`:''}: ожидается ${esc(x.exp)}.`+(x.ok?'':` ${x.err?esc(x.err):'Получено: '+esc(x.got)+'.'}`)) });
+    r.reqs.forEach(x=>{ h+=row(x.ok,esc(x.text)+(x.ok?'':' (этого требует условие задания)')) });
+  }
+  const d=diagnose(curTask,r);
+  if(d) h+=`<div class="hintbox" style="margin-top:6px"><b>На что обратить внимание.</b> ${esc(d)}</div>`;
+  const fl=(S.fails||{})[curTask.id]||0, pl=n=>n===1?'неудачной проверки':'неудачных проверок';
+  if(!r.ok && fl<2) h+=`<p class="small">Подсказка откроется после ещё ${2-fl} ${pl(2-fl)}.</p>`;
+  else if(!r.ok && fl<4) h+=`<p class="small">Вторая подсказка откроется после ещё ${4-fl} ${pl(4-fl)}.</p>`;
+  const el=$('#results'); if(el) el.innerHTML=`<h3>Результат проверки</h3>`+h;
+}
+$('#bCheck').onclick=doCheck;
+
+/* ===================== submit & result ===================== */
+function modal(html){ $('#modalBox').innerHTML=html; $('#modal').hidden=false }
+function closeModal(){ $('#modal').hidden=true }
+$('#submitBtn').onclick=()=>{
+  if(mode()==='bonus'){ const n=bonusSolved(), g=bonusGrade(n);
+    modal(`<h2>Сдать дополнительные задания?</h2><p>Решено: ${n} из ${BONUS.length}. Дополнительная оценка: ${g?g:'не выставляется'}.</p><p class="small">После сдачи изменить решения будет нельзя.</p><div class="confirm"><button class="btn primary" id="doSubmit">Сдать</button><button class="btn" id="cancelSubmit">Отмена</button></div>`); return }
+  const solved=TASKS.filter(t=>S.solved[t.id]).length, p=score(), unsolved=TASKS.length-solved;
+  modal(`<h2>Сдать работу?</h2><p>Решено заданий: ${solved} из ${TASKS.length}. Баллы: ${fmt(p)} из ${TOTAL}. Оценка: ${grade(p)}.</p>${unsolved?`<p class="small">${unsolved} ${plural(unsolved,'задание не решено','задания не решены','заданий не решены')}. После сдачи вернуться к ним будет нельзя.</p>`:'<p class="small">После сдачи изменить решения будет нельзя.</p>'}<div class="confirm"><button class="btn primary" id="doSubmit">Сдать работу</button><button class="btn" id="cancelSubmit">Отмена</button></div>`);
+};
+$('#modal').addEventListener('click',e=>{
+  if(e.target.id==='cancelSubmit'||e.target.id==='modal') closeModal();
+  if(e.target.id==='doSubmit'){ if(mode()==='bonus'){ S.bonusDone=true; S.bonusAt=new Date().toISOString() } else { S.submitted=true; S.submittedAt=new Date().toISOString() } save(); closeModal(); show('result') }
+});
+let resetArm=false;
+function bonusBlock(){
+  const m=mode(), n=bonusSolved(), g=bonusGrade(n);
+  if(m==='bonus') return `<h2>Дополнительные задания</h2><p>Можно решить ещё ${BONUS.length} задания на отдельную оценку: 4 решено – «5», 3 – «4», 2 – «3». Основная оценка от них не изменится.</p><div><button class="btn primary" data-go="tasks">Перейти к дополнительным заданиям</button></div>`;
+  if(m==='done') return `<h2>Дополнительные задания</h2><p class="grade">Доп. оценка: ${g?`${g} (${GWORD[g]})`:'не выставляется'}</p><p>Решено ${n} из ${BONUS.length}.</p><div class="tbl"><table><tr><th>№</th><th>Задание</th><th>Результат</th></tr>${BONUS.map(t=>`<tr><td>${t.label}</td><td>${esc(t.title)}</td><td>${S.solved[t.id]?'решено':'не решено'}</td></tr>`).join('')}</table></div>`;
+  return '';
+}
+function renderResult(){
+  const p=score(), g=grade(p), d=new Date(S.submittedAt||Date.now());
+  const when=d.toLocaleDateString('ru-RU')+' в '+d.toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'});
+  const solved=TASKS.filter(t=>S.solved[t.id]).length;
+  const rows=TASKS.map(t=>`<tr><td>${t.id}</td><td>${esc(t.title)}</td><td>${S.solved[t.id]?'решено':'не решено'}</td><td>${fmt(taskPoints(t))} из ${t.pts}</td></tr>`).join('');
+  $('#resultBox').innerHTML=`
+    <h1>Работа сдана</h1>
+    <p>${esc(S.name)}, группа ${esc(S.group)}. Сдано ${esc(when)}. Попытка ${S.attempt}.</p>
+    <p class="grade">Оценка: ${g} (${GWORD[g]})</p>
+    <p>Баллы: ${fmt(p)} из ${TOTAL}. Решено заданий: ${solved} из ${TASKS.length}.</p>
+    <div class="tbl"><table><tr><th>№</th><th>Задание</th><th>Результат</th><th>Баллы</th></tr>${rows}</table></div>
+    <p class="small">Шкала: 10–12 баллов – «5», 7–9 – «4», 4–6 – «3», 0–3 – «2».</p>
+    ${bonusBlock()}
+    <div class="confirm">${resetArm?`<span class="small">Все решения и оценка будут удалены.</span><button class="btn" id="resetYes">Начать заново</button><button class="btn" id="resetNo">Отмена</button>`:`<button class="btn" id="resetBtn">Начать заново</button>`}</div>`;
+}
+$('#resultBox').addEventListener('click',e=>{
+  if(e.target.id==='resetBtn'){ resetArm=true; renderResult() }
+  if(e.target.id==='resetNo'){ resetArm=false; renderResult() }
+  if(e.target.id==='resetYes'){ resetArm=false; S=fresh((S.attempt||1)+1); save(); $('#fio').value=''; $('#grp').value=''; show('login') }
+});
+
+/* ===================== boot ===================== */
+clearLog();
+if(S.name){ $('#fio').value=S.name; $('#grp').value=S.group }
+if(mode()==='done') show('result');
+else if(S.screen==='work' && S.name && active().some(t=>t.id===S.task)) openTask(S.task);
+else show(S.name ? (S.screen==='login'?'theory':S.screen) : 'login');
+</script>
+
+</body>
+</html>
